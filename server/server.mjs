@@ -14,6 +14,8 @@ const dataFile = path.join(dataDir, "commissions.json");
 loadEnvFile(path.join(rootDir, ".env"));
 
 const port = Number(process.env.PORT || 8787);
+const openaiApiKey = process.env.OPENAI_API_KEY || "";
+const openaiModel = process.env.OPENAI_MODEL || "gpt-5-mini";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const notificationEmail = process.env.COMMISSION_NOTIFICATION_EMAIL || "Orbitstudios26.ng@gmail.com";
 const senderEmail = process.env.RESEND_FROM_EMAIL || "Orbit Studios <onboarding@resend.dev>";
@@ -143,6 +145,96 @@ function buildFallbackMailto(entry) {
   return `mailto:${notificationEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(buildEmailText(entry))}`;
 }
 
+function extractResponseText(payload) {
+  if (typeof payload?.output_text === "string" && payload.output_text.trim()) {
+    return payload.output_text.trim();
+  }
+
+  const textParts = [];
+
+  for (const item of payload?.output || []) {
+    if (item?.type !== "message" || !Array.isArray(item.content)) {
+      continue;
+    }
+
+    for (const part of item.content) {
+      if ((part?.type === "output_text" || part?.type === "text") && typeof part.text === "string") {
+        textParts.push(part.text);
+      }
+    }
+  }
+
+  return textParts.join("\n").trim();
+}
+
+function normalizeGeneratedHtml(content) {
+  const trimmed = content.trim();
+
+  if (trimmed.startsWith("```")) {
+    return trimmed
+      .replace(/^```(?:html)?\s*/i, "")
+      .replace(/\s*```$/, "")
+      .trim();
+  }
+
+  return trimmed;
+}
+
+async function generateWebsiteMarkup(prompt) {
+  if (!openaiApiKey) {
+    throw new Error("Missing OPENAI_API_KEY. Add it to your environment before using the AI builder.");
+  }
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openaiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: openaiModel,
+      reasoning: {
+        effort: "low",
+      },
+      input: [
+        {
+          role: "system",
+          content: [
+            {
+              type: "input_text",
+              text:
+                "You are a professional web developer assistant. Return exactly one complete HTML document with embedded CSS and optional minimal JavaScript. Do not include markdown fences, commentary, or explanations. The result should be responsive, polished, and ready for iframe preview.",
+            },
+          ],
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "input_text",
+              text: prompt,
+            },
+          ],
+        },
+      ],
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.error?.message || "OpenAI generation failed.");
+  }
+
+  const content = normalizeGeneratedHtml(extractResponseText(payload));
+
+  if (!content) {
+    throw new Error("The AI response did not include any website markup.");
+  }
+
+  return content;
+}
+
 async function sendNotificationEmail(entry) {
   if (!resendApiKey) {
     return {
@@ -258,6 +350,34 @@ const server = createServer(async (request, response) => {
       return json(response, 500, {
         error: "Unable to process this commission request.",
         detail: error instanceof Error ? error.message : "Unknown error",
+      });
+    }
+  }
+
+  if (request.method === "POST" && url.pathname === "/api/generate-website") {
+    try {
+      const buffers = [];
+      for await (const chunk of request) {
+        buffers.push(chunk);
+      }
+
+      const raw = Buffer.concat(buffers).toString("utf8");
+      const payload = JSON.parse(raw || "{}");
+      const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
+
+      if (prompt.length < 10) {
+        return json(response, 400, { error: "Please enter a more detailed prompt." });
+      }
+
+      const html = await generateWebsiteMarkup(prompt);
+
+      return json(response, 200, {
+        html,
+        model: openaiModel,
+      });
+    } catch (error) {
+      return json(response, 500, {
+        error: error instanceof Error ? error.message : "Unable to generate website markup.",
       });
     }
   }
