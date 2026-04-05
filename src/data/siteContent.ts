@@ -217,7 +217,7 @@ export const featuredProjects: ProjectCard[] = [
     category: "Fashion Portfolio",
     summary:
       "A public client-facing portfolio focused on visual presentation, brand positioning, and a clearer path for inquiries.",
-    href: "https://orbitstudios26ng-spec.github.io/AvatarCouture/index.html",
+    href: "https://avatar-couture.vercel.app/",
     linkLabel: "Open live project",
     status: "Live",
     image: editorialImage,
