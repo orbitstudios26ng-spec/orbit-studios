@@ -3,6 +3,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import HomePage from "@/pages/Index";
 import PortfolioPage from "@/pages/PortfolioPage";
 import CommissionPage from "@/pages/CommissionPage";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
+      <SpeedInsights />
     </TooltipProvider>
   </QueryClientProvider>
 );
