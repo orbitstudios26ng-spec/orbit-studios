@@ -14,8 +14,8 @@ const dataFile = path.join(dataDir, "commissions.json");
 loadEnvFile(path.join(rootDir, ".env"));
 
 const port = Number(process.env.PORT || 8787);
-const openaiApiKey = process.env.OPENAI_API_KEY || "";
-const openaiModel = process.env.OPENAI_MODEL || "gpt-5-mini";
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || "";
+const anthropicModel = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const notificationEmail = process.env.COMMISSION_NOTIFICATION_EMAIL || "Orbitstudios26.ng@gmail.com";
 const senderEmail = process.env.RESEND_FROM_EMAIL || "Orbit Studios <onboarding@resend.dev>";
@@ -181,40 +181,24 @@ function normalizeGeneratedHtml(content) {
 }
 
 async function generateWebsiteMarkup(prompt) {
-  if (!openaiApiKey) {
-    throw new Error("Missing OPENAI_API_KEY. Add it to your environment before using the AI builder.");
+  if (!anthropicApiKey) {
+    throw new Error("Missing ANTHROPIC_API_KEY. Add it to your environment before using the AI builder.");
   }
 
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${openaiApiKey}`,
+      "x-api-key": anthropicApiKey,
+      "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: openaiModel,
-      reasoning: {
-        effort: "low",
-      },
-      input: [
-        {
-          role: "system",
-          content: [
-            {
-              type: "input_text",
-              text:
-                "You are a professional web developer assistant. Return exactly one complete HTML document with embedded CSS and optional minimal JavaScript. Do not include markdown fences, commentary, or explanations. The result should be responsive, polished, and ready for iframe preview.",
-            },
-          ],
-        },
+      model: anthropicModel,
+      max_tokens: 4096,
+      messages: [
         {
           role: "user",
-          content: [
-            {
-              type: "input_text",
-              text: prompt,
-            },
-          ],
+          content: `You are a professional web developer assistant. Return exactly one complete HTML document with embedded CSS and optional minimal JavaScript. Do not include markdown fences, commentary, or explanations. The result should be responsive, polished, and ready for iframe preview.\n\n${prompt}`,
         },
       ],
     }),
@@ -223,10 +207,12 @@ async function generateWebsiteMarkup(prompt) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.error?.message || "OpenAI generation failed.");
+    throw new Error(payload?.error?.message || "Claude API generation failed.");
   }
 
-  const content = normalizeGeneratedHtml(extractResponseText(payload));
+  const content = normalizeGeneratedHtml(
+    payload.content?.[0]?.text || ""
+  );
 
   if (!content) {
     throw new Error("The AI response did not include any website markup.");
@@ -373,7 +359,7 @@ const server = createServer(async (request, response) => {
 
       return json(response, 200, {
         html,
-        model: openaiModel,
+        model: anthropicModel,
       });
     } catch (error) {
       return json(response, 500, {

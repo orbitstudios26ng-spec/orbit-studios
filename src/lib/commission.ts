@@ -13,6 +13,9 @@ export const commissionSchema = z.object({
 
 export type CommissionFormValues = z.infer<typeof commissionSchema>;
 
+/**
+ * Submit commission via backend API (saves to JSON and sends email)
+ */
 export async function submitCommission(values: CommissionFormValues) {
   const parsed = commissionSchema.parse(values);
 
@@ -40,5 +43,38 @@ export async function submitCommission(values: CommissionFormValues) {
     };
     fallbackMailto?: string;
     detail?: string;
+  };
+}
+
+/**
+ * Submit commission via Formspree as alternative method
+ */
+export async function submitToFormspree(values: CommissionFormValues) {
+  const formspreeId = import.meta.env.VITE_FORMSPREE_ID || "xaqvagae";
+  
+  const formData = new FormData();
+  formData.append("fullName", values.fullName);
+  formData.append("email", values.email);
+  formData.append("brandName", values.brandName);
+  formData.append("projectType", values.projectType);
+  formData.append("budget", values.budget);
+  formData.append("timeline", values.timeline);
+  formData.append("goals", values.goals);
+  if (values.references) {
+    formData.append("references", values.references);
+  }
+
+  const response = await fetch(`https://formspree.io/f/${formspreeId}`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to submit form to email service.");
+  }
+
+  return {
+    id: `FORM-${Date.now()}`,
+    message: "Commission request sent successfully!",
   };
 }
