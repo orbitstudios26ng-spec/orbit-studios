@@ -64,13 +64,22 @@ export async function submitToFormspree(values: CommissionFormValues) {
     formData.append("references", values.references);
   }
 
+  formData.append("_replyto", values.email);
+  formData.append("_subject", "Orbit Studios commission request");
+
   const response = await fetch(`https://formspree.io/f/${formspreeId}`, {
     method: "POST",
+    headers: {
+      Accept: "application/json",
+    },
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to submit form to email service.");
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok || payload?.ok === false) {
+    const message = payload?.error?.message || payload?.errors?.[0]?.message || "Failed to submit form to email service.";
+    throw new Error(message);
   }
 
   return {
