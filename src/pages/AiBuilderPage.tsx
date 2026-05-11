@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Bot, Copy, LoaderCircle, Sparkles } from "lucide-react";
 import SiteLayout from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { generateWebsite } from "@/lib/aiBuilder";
 import { supabase } from "@/lib/supabase";
@@ -18,7 +19,9 @@ export default function AiBuilderPage() {
   const [prompt, setPrompt] = useState(starterPrompts[0]);
   const [html, setHtml] = useState("");
   const [model, setModel] = useState("");
+  const [userEmail, setUserEmail] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSigningIn, setIsSigningIn] = useState(false);
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
 
@@ -49,24 +52,36 @@ export default function AiBuilderPage() {
   }, []);
 
   const handleSignIn = async () => {
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        scopes: "email",
-      },
-    });
-
-    if (error) {
+    if (!userEmail.trim()) {
       toast({
-        title: "Unable to sign in",
-        description: error.message,
+        title: "Email required",
+        description: "Enter your email address to receive a sign-in code or magic link.",
         variant: "destructive",
       });
       return;
     }
 
-    if (data.url) {
-      window.location.href = data.url;
+    try {
+      setIsSigningIn(true);
+      const { error } = await supabase.auth.signInWithOtp({
+        email: userEmail,
+      });
+
+      if (error) {
+        toast({
+          title: "Unable to send sign-in email",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Check your inbox",
+        description: "We sent a sign-in code or magic link to your email.",
+      });
+    } finally {
+      setIsSigningIn(false);
     }
   };
 
@@ -136,7 +151,7 @@ export default function AiBuilderPage() {
           <p className="text-xs uppercase tracking-[0.35em] text-primary">AI builder</p>
           <h1 className="text-4xl font-semibold md:text-6xl">Generate a website draft instantly.</h1>
           <p className="text-lg leading-8 text-white/70">
-            Use the AI builder to create a polished website draft for your portfolio or studio. Sign in with Google to access AI generation.
+            Use the AI builder to create a polished website draft for your portfolio or studio. Sign in with your email to access AI generation.
           </p>
         </div>
       </section>
@@ -157,9 +172,25 @@ export default function AiBuilderPage() {
                   </button>
                 </div>
               ) : (
-                <Button type="button" size="sm" className="rounded-full px-6" onClick={handleSignIn}>
-                  Sign in with Google
-                </Button>
+                <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                  <Input
+                    type="email"
+                    value={userEmail}
+                    onChange={(event) => setUserEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="min-w-[240px] border-white/10 bg-black/20"
+                  />
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-full px-6"
+                    onClick={handleSignIn}
+                    disabled={isSigningIn}
+                  >
+                    {isSigningIn ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                    Email sign-in
+                  </Button>
+                </div>
               )}
             </div>
 
