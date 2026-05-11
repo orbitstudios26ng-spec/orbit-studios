@@ -40,9 +40,9 @@ export default function CommissionPage() {
           <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-sm leading-8 text-white/65">
             <p className="font-semibold text-white">Submission process</p>
             <p>1. The form is validated in the browser.</p>
-            <p>2. The request is sent to `POST /api/commissions`.</p>
-            <p>3. The backend writes the request into `data/commissions.json` and sends an email notification.</p>
-            <p>4. If automatic email is unavailable, a fallback email draft opens with the saved request details.</p>
+            <p>2. The request is submitted directly to Formspree for email delivery.</p>
+            <p>3. Formspree sends the submission to Orbit Studios' email inbox.</p>
+            <p>4. If automatic delivery fails, a fallback email draft opens with the saved request details.</p>
           </div>
         </div>
 

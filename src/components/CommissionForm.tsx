@@ -2,7 +2,7 @@ import { ReactNode, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { LoaderCircle, Send } from "lucide-react";
-import { commissionSchema, submitCommission, type CommissionFormValues } from "@/lib/commission";
+import { commissionSchema, submitToFormspree, type CommissionFormValues } from "@/lib/commission";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,20 +58,12 @@ export default function CommissionForm() {
 
   const onSubmit = async (values: CommissionFormValues) => {
     try {
-      const result = await submitCommission(values);
+      const result = await submitToFormspree(values);
       setLastReference(result.id);
-      if (result.email?.delivered) {
-        toast({
-          title: "Commission request sent",
-          description: "Your brief was emailed to Orbit Studios successfully.",
-        });
-      } else {
-        window.location.href = result.fallbackMailto || buildFallbackMailto(values);
-        toast({
-          title: "Commission saved",
-          description: "Your brief was saved. An email draft has been opened as a fallback so you can send it directly.",
-        });
-      }
+      toast({
+        title: "Commission request sent",
+        description: "Your brief was submitted successfully and will be delivered by email.",
+      });
       reset();
     } catch (error) {
       window.location.href = buildFallbackMailto(values);
@@ -80,7 +72,7 @@ export default function CommissionForm() {
         description:
           error instanceof Error
             ? `${error.message} A fallback email draft has been opened so you can still send the brief.`
-            : "The automatic submission failed. A fallback email draft has been opened so you can still send the brief.",
+            : "Submission failed. A fallback email draft has been opened so you can still send the brief.",
       });
     }
   };
