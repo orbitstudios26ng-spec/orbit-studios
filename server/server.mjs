@@ -14,8 +14,8 @@ const dataFile = path.join(dataDir, "commissions.json");
 loadEnvFile(path.join(rootDir, ".env"));
 
 const port = Number(process.env.PORT || 8787);
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY || "";
-const anthropicModel = process.env.ANTHROPIC_MODEL || "claude-3-5-sonnet-20241022";
+const openaiApiKey = process.env.OPENAI_API_KEY || "";
+const openaiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
 const resendApiKey = process.env.RESEND_API_KEY || "";
 const notificationEmail = process.env.COMMISSION_NOTIFICATION_EMAIL || "Orbitstudios26.ng@gmail.com";
 const senderEmail = process.env.RESEND_FROM_EMAIL || "Orbit Studios <onboarding@resend.dev>";
@@ -181,24 +181,27 @@ function normalizeGeneratedHtml(content) {
 }
 
 async function generateWebsiteMarkup(prompt) {
-  if (!anthropicApiKey) {
-    throw new Error("Missing ANTHROPIC_API_KEY. Add it to your environment before using the AI builder.");
+  if (!openaiApiKey) {
+    throw new Error("Missing OPENAI_API_KEY. Add it to your environment before using the AI builder.");
   }
 
-  const response = await fetch("https://api.anthropic.com/v1/messages", {
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": anthropicApiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${openaiApiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: anthropicModel,
-      max_tokens: 4096,
+      model: openaiModel,
       messages: [
         {
+          role: "system",
+          content:
+            "You are a professional web developer assistant. Return exactly one complete HTML document with embedded CSS and optional minimal JavaScript. Do not include markdown fences, commentary, or explanations. The result should be responsive, polished, and ready for iframe preview.",
+        },
+        {
           role: "user",
-          content: `You are a professional web developer assistant. Return exactly one complete HTML document with embedded CSS and optional minimal JavaScript. Do not include markdown fences, commentary, or explanations. The result should be responsive, polished, and ready for iframe preview.\n\n${prompt}`,
+          content: prompt,
         },
       ],
     }),
@@ -207,12 +210,10 @@ async function generateWebsiteMarkup(prompt) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(payload?.error?.message || "Claude API generation failed.");
+    throw new Error(payload?.error?.message || "OpenAI generation failed.");
   }
 
-  const content = normalizeGeneratedHtml(
-    payload.content?.[0]?.text || ""
-  );
+  const content = normalizeGeneratedHtml(payload.choices?.[0]?.message?.content || "");
 
   if (!content) {
     throw new Error("The AI response did not include any website markup.");
@@ -359,7 +360,7 @@ const server = createServer(async (request, response) => {
 
       return json(response, 200, {
         html,
-        model: anthropicModel,
+        model: openaiModel,
       });
     } catch (error) {
       return json(response, 500, {
