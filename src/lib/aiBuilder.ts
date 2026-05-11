@@ -1,9 +1,15 @@
-export async function generateWebsite(prompt: string) {
-  const response = await fetch("/api/generate-website", {
+export async function generateWebsite(prompt: string, accessToken?: string) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (accessToken) {
+    headers.Authorization = `Bearer ${accessToken}`;
+  }
+
+  const response = await fetch("/api/generate", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ prompt }),
   });
 
