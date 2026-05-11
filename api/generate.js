@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const FREE_LIMIT = 5;
+const FREE_LIMIT = 3;
 
 if (!OPENROUTER_API_KEY) {
   throw new Error("Missing OPENROUTER_API_KEY in environment variables.");
@@ -62,7 +62,7 @@ export default async function handler(req, res) {
 
   const { data: existingUser, error: existingUserError } = await supabase
     .from("users")
-    .select("id, free_uses, paid")
+    .select("id, free_uses, paid, credits")
     .eq("id", userId)
     .maybeSingle();
 
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
   if (!usageRecord) {
     const { data: newUser, error: createError } = await supabase
       .from("users")
-      .insert({ id: userId, email: user.email, free_uses: 0, paid: false })
+      .insert({ id: userId, email: user.email, free_uses: 0, paid: false, credits: 0 })
       .single();
 
     if (createError) {
@@ -84,7 +84,10 @@ export default async function handler(req, res) {
     usageRecord = newUser;
   }
 
-  if (!usageRecord.paid && usageRecord.free_uses >= FREE_LIMIT) {
+  const hasFreeUsesLeft = usageRecord.free_uses < FREE_LIMIT;
+  const hasPaidCredits = (usageRecord.credits ?? 0) > 0;
+
+  if (!hasFreeUsesLeft && !hasPaidCredits) {
     return res.status(403).json({ error: "Free usage limit reached. Upgrade to continue." });
   }
 
@@ -107,18 +110,24 @@ export default async function handler(req, res) {
     return res.status(openRouterResponse.status).json({ error: openRouterPayload?.error || "OpenRouter request failed." });
   }
 
-  if (!usageRecord.paid) {
-    await supabase
-      .from("users")
-      .update({ free_uses: usageRecord.free_uses + 1 })
-      .eq("id", userId);
-  }
+  const nextFreeUses = hasFreeUsesLeft ? usageRecord.free_uses + 1 : usageRecord.free_uses;
+  const nextCredits = hasFreeUsesLeft ? usageRecord.credits ?? 0 : Math.max(0, (usageRecord.credits ?? 0) - 1);
+
+  await supabase
+    .from("users")
+    .update({
+      free_uses: nextFreeUses,
+      credits: nextCredits,
+      paid: nextCredits > 0 || usageRecord.paid,
+    })
+    .eq("id", userId);
 
   return res.status(200).json({
     ...openRouterPayload,
     usage: {
-      free_uses: usageRecord.free_uses + (usageRecord.paid ? 0 : 1),
-      paid: usageRecord.paid,
+      free_uses: nextFreeUses,
+      credits: nextCredits,
+      paid: nextCredits > 0 || usageRecord.paid,
       limit: FREE_LIMIT,
     },
   });

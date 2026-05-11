@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Copy, LoaderCircle, Sparkles } from "lucide-react";
+import { Bot, Copy, LoaderCircle, Sparkles, Zap } from "lucide-react";
 import SiteLayout from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,8 +22,11 @@ export default function AiBuilderPage() {
   const [userEmail, setUserEmail] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSigningIn, setIsSigningIn] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
   const [session, setSession] = useState(null);
   const [user, setUser] = useState(null);
+  const [credits, setCredits] = useState<number | null>(null);
+  const [freeUses, setFreeUses] = useState<number | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -31,9 +34,9 @@ export default function AiBuilderPage() {
     async function loadSession() {
       const { data } = await supabase.auth.getSession();
       if (!isMounted) return;
-
       setSession(data.session);
       setUser(data.session?.user ?? null);
+      if (data.session?.user) fetchUserData(data.session.user.id);
     }
 
     loadSession();
@@ -43,6 +46,7 @@ export default function AiBuilderPage() {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (session?.user) fetchUserData(session.user.id);
     });
 
     return () => {
@@ -51,11 +55,24 @@ export default function AiBuilderPage() {
     };
   }, []);
 
+  const fetchUserData = async (userId: string) => {
+    const { data, error } = await supabase
+      .from("users")
+      .select("credits, free_uses")
+      .eq("id", userId)
+      .single();
+
+    if (!error && data) {
+      setCredits(data.credits ?? 0);
+      setFreeUses(data.free_uses ?? 0);
+    }
+  };
+
   const handleSignIn = async () => {
     if (!userEmail.trim()) {
       toast({
         title: "Email required",
-        description: "Enter your email address to receive a sign-in code or magic link.",
+        description: "Enter your email address to receive a sign-in link.",
         variant: "destructive",
       });
       return;
@@ -78,7 +95,7 @@ export default function AiBuilderPage() {
 
       toast({
         title: "Check your inbox",
-        description: "We sent a sign-in code or magic link to your email.",
+        description: "We sent a sign-in link to your email.",
       });
     } finally {
       setIsSigningIn(false);
@@ -100,13 +117,57 @@ export default function AiBuilderPage() {
     setUser(null);
     setHtml("");
     setModel("");
+    setCredits(null);
+    setFreeUses(null);
+  };
+
+  const handleBuyCredits = async () => {
+    if (!session?.access_token) return;
+
+    try {
+      setIsBuying(true);
+      const res = await fetch("/api/pay/initiate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ credits: 10 }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Payment initiation failed");
+      }
+
+      window.location.href = data.authorization_url;
+    } catch (error) {
+      toast({
+        title: "Payment failed",
+        description: error instanceof Error ? error.message : "Could not initiate payment.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsBuying(false);
+    }
   };
 
   const handleGenerate = async () => {
     if (!session?.access_token) {
       toast({
         title: "Sign in required",
-        description: "Please sign in with Google to use the AI builder.",
+        description: "Please sign in with your email to use the AI builder.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const FREE_LIMIT = 3;
+    if ((freeUses ?? 0) >= FREE_LIMIT && (credits ?? 0) <= 0) {
+      toast({
+        title: "No credits remaining",
+        description: "You've used your free generations. Buy credits to continue.",
         variant: "destructive",
       });
       return;
@@ -117,6 +178,9 @@ export default function AiBuilderPage() {
       const result = await generateWebsite(prompt, session.access_token);
       setHtml(result.html);
       setModel(result.model);
+
+      if (user) fetchUserData(user.id);
+
       toast({
         title: "Website generated",
         description: `Draft generated with ${result.model}.`,
@@ -133,16 +197,16 @@ export default function AiBuilderPage() {
   };
 
   const handleCopy = async () => {
-    if (!html) {
-      return;
-    }
-
+    if (!html) return;
     await navigator.clipboard.writeText(html);
     toast({
       title: "Code copied",
       description: "The generated HTML has been copied to your clipboard.",
     });
   };
+
+  const FREE_LIMIT = 3;
+  const freeLeft = Math.max(0, FREE_LIMIT - (freeUses ?? 0));
 
   return (
     <SiteLayout>
@@ -164,12 +228,32 @@ export default function AiBuilderPage() {
                 <p className="text-sm uppercase tracking-[0.35em] text-primary">AI prompt</p>
                 <p className="text-sm text-white/70">Describe the website you want the AI to build.</p>
               </div>
+
               {user ? (
-                <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-white/80">
-                  Signed in as {user.email}
-                  <button className="ml-3 text-primary underline" type="button" onClick={handleSignOut}>
-                    Sign out
-                  </button>
+                <div className="flex flex-col gap-2">
+                  <div className="rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm text-white/80">
+                    {user.email}
+                    <button className="ml-3 text-primary underline" type="button" onClick={handleSignOut}>
+                      Sign out
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 rounded-full border border-white/10 bg-black/20 px-4 py-2 text-sm">
+                    <span className="text-white/60">
+                      {(freeUses ?? 0) < FREE_LIMIT
+                        ? `${freeLeft} free generation${freeLeft !== 1 ? "s" : ""} left`
+                        : `${credits ?? 0} credit${(credits ?? 0) !== 1 ? "s" : ""}`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleBuyCredits}
+                      disabled={isBuying}
+                      className="flex items-center gap-1 text-primary underline"
+                    >
+                      {isBuying ? <LoaderCircle className="h-3 w-3 animate-spin" /> : <Zap className="h-3 w-3" />}
+                      Buy credits
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
