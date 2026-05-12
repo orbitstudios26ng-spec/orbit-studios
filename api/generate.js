@@ -98,7 +98,7 @@ export default async function handler(req, res) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "openai/gpt-5",
+      model: "openai/gpt-4o",
       messages: [{ role: "user", content: prompt }],
       max_tokens: 1200,
       temperature: 0.7,
@@ -122,8 +122,12 @@ export default async function handler(req, res) {
     })
     .eq("id", userId);
 
+  const html = openRouterPayload?.choices?.[0]?.message?.content ?? "";
+  const model = openRouterPayload?.model ?? "unknown";
+
   return res.status(200).json({
-    ...openRouterPayload,
+    html,
+    model,
     usage: {
       free_uses: nextFreeUses,
       credits: nextCredits,
