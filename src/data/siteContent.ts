@@ -1,6 +1,4 @@
 import logoImage from "../../Orbit_logo.jpeg";
-import heroImage from "../../orbit_header2.jpg";
-import editorialImage from "../../orbit_header.jpg";
 
 export type ProjectCard = {
   title: string;
@@ -220,7 +218,7 @@ export const featuredProjects: ProjectCard[] = [
     href: "https://avatar-couture.vercel.app/",
     linkLabel: "Open live project",
     status: "Live",
-    image: editorialImage,
+    image: logoImage,
     accent: "from-amber-400/40 via-yellow-500/20 to-transparent",
     tags: ["Fashion", "Portfolio", "Public project"],
     external: true,
@@ -233,7 +231,7 @@ export const featuredProjects: ProjectCard[] = [
     href: "/",
     linkLabel: "View current site",
     status: "Live",
-    image: heroImage,
+    image: logoImage,
     accent: "from-yellow-400/35 via-amber-500/15 to-transparent",
     tags: ["Studio", "Commission flow", "Production build"],
   },
