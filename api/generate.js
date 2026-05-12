@@ -99,7 +99,14 @@ export default async function handler(req, res) {
     },
     body: JSON.stringify({
       model: "openai/gpt-4o",
-      messages: [{ role: "user", content: prompt }],
+      messages: [
+        {
+          role: "system",
+          content:
+            "You are a website generator. Return ONLY raw HTML code with embedded CSS. No markdown, no explanations, no code blocks, no backticks. Just pure HTML starting with <!DOCTYPE html>.",
+        },
+        { role: "user", content: prompt },
+      ],
       max_tokens: 1200,
       temperature: 0.7,
     }),

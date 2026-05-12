@@ -340,9 +340,11 @@ export default function AiBuilderPage() {
               <div className="mt-4 flex flex-col gap-3">
                 <iframe
                   srcDoc={html}
-                  className="h-[60vh] w-full rounded-3xl border border-white/10"
+                  className="w-full rounded-3xl border border-white/10"
+                  style={{ height: "60vh", maxHeight: "600px" }}
                   sandbox="allow-scripts"
                   title="Generated website preview"
+                  scrolling="yes"
                 />
                 <pre className="max-h-[20vh] overflow-auto rounded-3xl border border-white/10 bg-slate-950 p-4 text-xs text-white/70">
                   {html}
