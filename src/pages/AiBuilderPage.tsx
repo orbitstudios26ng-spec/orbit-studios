@@ -322,9 +322,17 @@ export default function AiBuilderPage() {
               {model ? <p className="text-xs text-white/50">Model: {model}</p> : null}
             </div>
             {html ? (
-              <pre className="mt-4 max-h-[60vh] overflow-auto rounded-3xl border border-white/10 bg-slate-950 p-4 text-xs text-white/70">
-                {html}
-              </pre>
+              <div className="mt-4 flex flex-col gap-3">
+                <iframe
+                  srcDoc={html}
+                  className="h-[60vh] w-full rounded-3xl border border-white/10"
+                  sandbox="allow-scripts"
+                  title="Generated website preview"
+                />
+                <pre className="max-h-[20vh] overflow-auto rounded-3xl border border-white/10 bg-slate-950 p-4 text-xs text-white/70">
+                  {html}
+                </pre>
+              </div>
             ) : (
               <div className="mt-4 text-white/70">Your generated website draft will appear here after you click generate.</div>
             )}
