@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bot, Copy, LoaderCircle, Sparkles, Zap } from "lucide-react";
+import { Bot, Copy, Download, LoaderCircle, Sparkles, Zap } from "lucide-react";
 import SiteLayout from "@/components/SiteLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -205,6 +205,17 @@ export default function AiBuilderPage() {
     });
   };
 
+  const handleDownload = () => {
+    if (!html) return;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "orbit-website.html";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const FREE_LIMIT = 3;
   const freeLeft = Math.max(0, FREE_LIMIT - (freeUses ?? 0));
 
@@ -312,6 +323,10 @@ export default function AiBuilderPage() {
               <Button type="button" size="lg" className="rounded-full px-7" onClick={handleCopy} disabled={!html}>
                 <Copy className="h-4 w-4" />
                 Copy HTML
+              </Button>
+              <Button type="button" size="lg" className="rounded-full px-7" onClick={handleDownload} disabled={!html}>
+                <Download className="h-4 w-4" />
+                Download HTML
               </Button>
             </div>
           </div>
