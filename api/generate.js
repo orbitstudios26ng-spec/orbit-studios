@@ -103,7 +103,7 @@ export default async function handler(req, res) {
         {
           role: "system",
           content:
-            "You are a website generator. Return ONLY raw HTML code with embedded CSS. No markdown, no explanations, no code blocks, no backticks. Just pure HTML starting with <!DOCTYPE html>.",
+            "You are a website generator. Return ONLY raw HTML with embedded CSS. No markdown, no explanations, no backticks. Pure HTML starting with <!DOCTYPE html>. IMPORTANT: Do not use any <img> tags or external images. Use CSS gradients, solid colors, and placeholder shapes instead. Make it look great without images.",
         },
         { role: "user", content: prompt },
       ],

@@ -232,7 +232,7 @@ export default function AiBuilderPage() {
       </section>
 
       <section className="container px-4 pb-24">
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_0.8fr]">
+        <div className="grid gap-6 lg:grid-cols-[1fr_1.5fr]">
           <div className="space-y-6 rounded-[2rem] border border-white/10 bg-white/5 p-8">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -338,14 +338,14 @@ export default function AiBuilderPage() {
             </div>
             {html ? (
               <div className="mt-4 flex flex-col gap-3">
-                <iframe
-                  srcDoc={html}
-                  className="w-full rounded-3xl border border-white/10"
-                  style={{ height: "60vh", maxHeight: "600px" }}
-                  sandbox="allow-scripts"
-                  title="Generated website preview"
-                  scrolling="yes"
-                />
+                <div className="relative w-full overflow-hidden rounded-3xl border border-white/10" style={{ height: "75vh" }}>
+                  <iframe
+                    srcDoc={html}
+                    className="absolute inset-0 h-full w-full"
+                    sandbox="allow-scripts"
+                    title="Generated website preview"
+                  />
+                </div>
                 <pre className="max-h-[20vh] overflow-auto rounded-3xl border border-white/10 bg-slate-950 p-4 text-xs text-white/70">
                   {html}
                 </pre>
