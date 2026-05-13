@@ -6,12 +6,12 @@ function getPricingItemLayout(title: string) {
   if (title === "Website Services") {
     return "grid gap-4 sm:grid-cols-2 xl:grid-cols-3";
   }
-  return "flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory";
+  return "grid gap-4 sm:flex sm:overflow-x-auto sm:pb-2 sm:snap-x sm:snap-mandatory";
 }
 
 function getPricingCardWidth(title: string) {
   if (title === "Website Services") return "";
-  return "min-w-[260px] sm:min-w-[300px]";
+  return "sm:min-w-[280px] lg:min-w-[320px]";
 }
 
 export default function CommissionPage() {
