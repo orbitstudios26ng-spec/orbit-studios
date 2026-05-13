@@ -1,9 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap");
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
   :root {
     --background: 0 0% 4%;
@@ -35,15 +33,15 @@
     --sidebar-border: 40 18% 22%;
     --sidebar-ring: 43 74% 58%;
   }
-
   * {
     @apply border-border;
+    box-sizing: border-box;
   }
-
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
+    max-width: 100vw;
   }
-
   body {
     @apply bg-background text-foreground antialiased;
     font-family: "Manrope", sans-serif;
@@ -52,21 +50,22 @@
       radial-gradient(circle at bottom right, rgba(140, 102, 24, 0.12), transparent 24%),
       linear-gradient(180deg, rgba(16, 14, 11, 0.98), rgba(4, 4, 4, 1));
     min-width: 320px;
+    max-width: 100vw;
+    overflow-x: hidden;
   }
-
   h1,
   h2,
   h3 {
     letter-spacing: -0.03em;
   }
 }
-
 @layer components {
   .container {
     @apply mx-auto w-full max-w-7xl;
+    padding-left: 1rem;
+    padding-right: 1rem;
   }
 }
-
 @layer utilities {
   .font-display {
     font-family: "Instrument Serif", serif;
